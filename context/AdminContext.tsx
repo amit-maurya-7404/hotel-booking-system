@@ -10,6 +10,7 @@ export interface Room {
   type: 'dorm' | 'private'
   capacity: number
   price: number
+  description: string
   amenities: string[]
   available: boolean
 }
@@ -57,25 +58,25 @@ interface AdminContextType {
   offers: Offer[]
   loading: boolean
   error: string | null
-  
+
   // Room operations
   fetchRooms: () => Promise<void>
   addRoom: (room: Omit<Room, 'id'>) => Promise<void>
   updateRoom: (id: string, room: Omit<Room, 'id'>) => Promise<void>
   deleteRoom: (id: string) => Promise<void>
-  
+
   // Booking operations
   fetchBookings: () => Promise<void>
   addBooking: (booking: Omit<Booking, 'id'>) => Promise<void>
   updateBooking: (id: string, booking: Omit<Booking, 'id'>) => Promise<void>
   deleteBooking: (id: string) => Promise<void>
-  
+
   // Blog operations
   fetchBlogPosts: () => Promise<void>
   addBlogPost: (post: Omit<BlogPost, 'id'>) => Promise<void>
   updateBlogPost: (id: string, post: Omit<BlogPost, 'id'>) => Promise<void>
   deleteBlogPost: (id: string) => Promise<void>
-  
+
   // Offer operations
   fetchOffers: () => Promise<void>
   addOffer: (offer: Omit<Offer, 'id'>) => Promise<void>

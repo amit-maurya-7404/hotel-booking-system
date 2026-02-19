@@ -28,7 +28,7 @@ router.get('/:id', async (req, res) => {
 
 // CREATE new room
 router.post('/', async (req, res) => {
-  const { name, type, capacity, price, amenities } = req.body;
+  const { name, type, capacity, price, amenities, description } = req.body;
 
   // Validation
   if (!name || !type || !capacity || !price) {
@@ -41,6 +41,7 @@ router.post('/', async (req, res) => {
     type,
     capacity,
     price,
+    description: description || '',
     amenities: amenities || [],
     available: true,
   });
@@ -65,6 +66,7 @@ router.put('/:id', async (req, res) => {
     if (req.body.type) room.type = req.body.type;
     if (req.body.capacity) room.capacity = req.body.capacity;
     if (req.body.price) room.price = req.body.price;
+    if (req.body.description !== undefined) room.description = req.body.description;
     if (req.body.amenities) room.amenities = req.body.amenities;
     if (req.body.available !== undefined) room.available = req.body.available;
 

@@ -85,7 +85,7 @@ export default function BlogPage() {
   return (
     <main className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
         {/* Hero Section */}
         <div className="mb-16 text-center">
@@ -101,11 +101,10 @@ export default function BlogPage() {
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-4 py-2 rounded-full transition ${
-                activeCategory === category
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground hover:bg-muted/80'
-              }`}
+              className={`px-4 py-2 rounded-full transition ${activeCategory === category
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-foreground hover:bg-muted/80'
+                }`}
             >
               {category}
             </button>
@@ -159,7 +158,7 @@ export default function BlogPage() {
             {filteredPosts.map((post) => (
               <Card
                 key={post.id}
-                className="overflow-hidden hover:shadow-lg transition cursor-pointer hover:scale-105 transform"
+                className="overflow-hidden hover:shadow-lg transition cursor-pointer hover:scale-102 transform py-0"
                 onClick={() => setSelectedPost(post.id - 1)}
               >
                 <div className="aspect-square bg-muted flex items-center justify-center text-6xl">

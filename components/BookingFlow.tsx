@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import RoomSelection from '@/components/booking/RoomSelection'
 import BookingSummary from '@/components/booking/BookingSummary'
 import CheckoutForm from '@/components/booking/CheckoutForm'
-import { X } from 'lucide-react'
+import { DateRangePicker } from '@/components/booking/DateRangePicker'
+import { X, Loader } from 'lucide-react'
+import { DateRange } from 'react-day-picker'
+import { addDays } from 'date-fns'
 
 interface BookingFlowProps {
   onClose: () => void
@@ -14,81 +17,176 @@ interface BookingFlowProps {
   checkOutDate: string
 }
 
+interface Room {
+  id: string
+  name: string
+  type: 'dorm' | 'private'
+  capacity: number
+  price: number
+  description?: string
+  amenities: string[]
+  available: boolean
+  images?: string[]
+}
+
+const API_URL = 'http://localhost:5000/api'
+
 export default function BookingFlow({ onClose, checkInDate, checkOutDate }: BookingFlowProps) {
   const [step, setStep] = useState<'rooms' | 'checkout'>('rooms')
-  const [selectedRooms, setSelectedRooms] = useState<Array<{ id: string; name: string; price: number; quantity: number }>>([])
 
-  const handleRoomSelection = (rooms: typeof selectedRooms) => {
-    setSelectedRooms(rooms)
+  // State lifted from RoomSelection
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [quantities, setQuantities] = useState<Record<string, number>>({})
+
+  // Date state
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: new Date(checkInDate),
+    to: new Date(checkOutDate),
+  })
+
+  useEffect(() => {
+    fetchRooms()
+  }, [])
+
+  const fetchRooms = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch(`${API_URL}/rooms`)
+      if (!response.ok) throw new Error('Failed to fetch rooms')
+      const data = await response.json()
+      setRooms(data.filter((room: Room) => room.available))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error fetching rooms'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateQuantity = (roomId: string, quantity: number) => {
+    if (quantity < 0) return
+    const room = rooms.find(r => r.id === roomId)
+    // Optional: Add max quantity check based on availability if needed
+
+    if (quantity === 0) {
+      const { [roomId]: _, ...rest } = quantities
+      setQuantities(rest)
+    } else {
+      setQuantities({ ...quantities, [roomId]: quantity })
+    }
+  }
+
+  const handleContinueToCheckout = () => {
     setStep('checkout')
   }
 
   const handleBackToRooms = () => {
     setStep('rooms')
-    setSelectedRooms([])
   }
 
-  const handleDateSelection = (dates: { checkInDate: string, checkOutDate: string }) => {
-    // Implement date selection logic here
-    setStep('rooms')
-  }
-
-  const handleBackToDates = () => {
-    setStep('rooms')
-  }
+  // Derived state for summary/checkout
+  const selectedRoomsList = Object.entries(quantities)
+    .filter(([_, qty]) => qty > 0)
+    .map(([roomId, quantity]) => {
+      const room = rooms.find(r => r.id === roomId)!
+      return {
+        id: roomId,
+        name: room.name,
+        price: room.price,
+        quantity,
+      }
+    })
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center overflow-y-auto py-8">
-      <Card className="w-full max-w-4xl mx-4 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 hover:bg-muted rounded-lg transition"
-        >
-          <X className="w-6 h-6" />
-        </button>
+    <div className="z-40 flex items-center justify-center overflow-y-auto py-8">
+      <button
+        onClick={onClose}
+        className="fixed top-24 right-4 z-50 p-2 bg-background/80 backdrop-blur-sm hover:bg-muted rounded-full shadow-sm transition border border-border"
+      >
+        <X className="w-6 h-6" />
+      </button>
 
-        <div className="p-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">Book your stay</h2>
-          <p className="text-foreground/70 mb-8">Select from a range of beautiful rooms</p>
-
-          {step === 'rooms' && (
-            <>
-              <div className="mb-6 p-4 bg-muted rounded-lg">
-                <p className="text-sm text-foreground/70">Selected Dates</p>
-                <p className="font-semibold text-foreground">
-                  {new Date(checkInDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → {new Date(checkOutDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </p>
+      <div className="p-4 md:p-8 w-full max-w-7xl mx-auto">
+        {step === 'rooms' && (
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-3xl font-bold text-foreground">Book your stay</h2>
+                  <p className="text-foreground/70">Select from a range of beautiful rooms</p>
+                </div>
+                <DateRangePicker date={date} setDate={setDate} />
               </div>
-              <RoomSelection 
-                checkInDate={checkInDate}
-                checkOutDate={checkOutDate}
-                onNext={handleRoomSelection}
-                onBack={onClose}
-              />
-            </>
-          )}
 
-          {step === 'checkout' && (
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="md:col-span-2">
-                <CheckoutForm 
-                  checkInDate={checkInDate}
-                  checkOutDate={checkOutDate}
-                  selectedRooms={selectedRooms}
-                  onBack={handleBackToRooms}
+              {loading ? (
+                <div className="flex items-center justify-center p-12">
+                  <Loader className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <div className="text-center p-12 text-red-500">
+                  {error}
+                  <Button onClick={fetchRooms} variant="outline" className="ml-4">Retry</Button>
+                </div>
+              ) : (
+                <RoomSelection
+                  rooms={rooms}
+                  quantities={quantities}
+                  onQuantityChange={updateQuantity}
                 />
-              </div>
-              <div>
-                <BookingSummary 
-                  checkInDate={checkInDate}
-                  checkOutDate={checkOutDate}
-                  selectedRooms={selectedRooms}
+              )}
+            </div>
+
+            <div className="hidden lg:block">
+              {/* Sticky sidebar placeholder - enables sticky behavior */}
+              <div className="sticky top-8">
+                <BookingSummary
+                  checkInDate={date?.from?.toISOString() || checkInDate}
+                  checkOutDate={date?.to?.toISOString() || checkOutDate}
+                  selectedRooms={selectedRoomsList}
+                  onContinue={handleContinueToCheckout}
+                  showButton={true}
                 />
               </div>
             </div>
-          )}
-        </div>
-      </Card>
+
+            {/* Mobile Summary (bottom fixed or inline? Inline for now to handle complexity) */}
+            <div className="lg:hidden">
+              <BookingSummary
+                checkInDate={date?.from?.toISOString() || checkInDate}
+                checkOutDate={date?.to?.toISOString() || checkOutDate}
+                selectedRooms={selectedRoomsList}
+                onContinue={handleContinueToCheckout}
+                showButton={true}
+              />
+            </div>
+          </div>
+        )}
+
+        {step === 'checkout' && (
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="md:col-span-2">
+              <CheckoutForm
+                checkInDate={date?.from?.toISOString() || checkInDate}
+                checkOutDate={date?.to?.toISOString() || checkOutDate}
+                selectedRooms={selectedRoomsList}
+                onBack={handleBackToRooms}
+              />
+            </div>
+            <div>
+              <div className="sticky top-8">
+                <BookingSummary
+                  checkInDate={date?.from?.toISOString() || checkInDate}
+                  checkOutDate={date?.to?.toISOString() || checkOutDate}
+                  selectedRooms={selectedRoomsList}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

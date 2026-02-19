@@ -25,7 +25,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background">
       <Header />
-      
+
       {showBooking ? (
         <BookingFlow onClose={() => setShowBooking(false)} checkInDate={bookingDates.checkIn} checkOutDate={bookingDates.checkOut} />
       ) : (

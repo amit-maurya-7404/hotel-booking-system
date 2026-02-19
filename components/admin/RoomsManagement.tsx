@@ -18,18 +18,19 @@ export default function RoomsManagement() {
     type: 'dorm' as 'dorm' | 'private',
     capacity: 0,
     price: 0,
+    description: '',
     amenities: '',
     available: true,
   })
 
   const handleReset = () => {
-    setFormData({ name: '', type: 'dorm', capacity: 0, price: 0, amenities: '', available: true })
+    setFormData({ name: '', type: 'dorm', capacity: 0, price: 0, description: '', amenities: '', available: true })
     setEditingId(null)
     setShowForm(false)
   }
 
   useEffect(() => {
-    fetchRooms().catch(() => {})
+    fetchRooms().catch(() => { })
   }, [])
 
   const handleEdit = (room: any) => {
@@ -38,6 +39,7 @@ export default function RoomsManagement() {
       type: room.type,
       capacity: room.capacity,
       price: room.price,
+      description: room.description || '',
       amenities: (room.amenities || []).join(', '),
       available: room.available,
     })
@@ -50,12 +52,13 @@ export default function RoomsManagement() {
     setIsSubmitting(true)
     try {
       const amenities = formData.amenities.split(',').map(a => a.trim()).filter(Boolean)
-      
+
       if (editingId) {
         await updateRoom(editingId, {
           ...formData,
           capacity: Number(formData.capacity),
           price: Number(formData.price),
+          description: formData.description,
           amenities,
         })
       } else {
@@ -64,6 +67,7 @@ export default function RoomsManagement() {
           type: formData.type,
           capacity: Number(formData.capacity),
           price: Number(formData.price),
+          description: formData.description,
           amenities,
           available: formData.available,
         })
@@ -109,7 +113,7 @@ export default function RoomsManagement() {
           <h1 className="text-3xl font-bold text-foreground">Room Management</h1>
           <p className="text-foreground/70 mt-2">Manage your property's rooms and availability</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setShowForm(!showForm)}
           className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2"
         >
@@ -128,7 +132,7 @@ export default function RoomsManagement() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -177,6 +181,16 @@ export default function RoomsManagement() {
             </div>
 
             <div>
+              <Label>Description</Label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="e.g., A cozy room with mountain views and modern amenities..."
+                className="w-full px-3 py-2 border border-border rounded-md min-h-[80px] resize-y"
+              />
+            </div>
+
+            <div>
               <Label>Amenities (comma-separated)</Label>
               <Input
                 value={formData.amenities}
@@ -186,8 +200,8 @@ export default function RoomsManagement() {
             </div>
 
             <div className="flex gap-2">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting}
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
               >
