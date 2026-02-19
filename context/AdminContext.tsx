@@ -250,7 +250,12 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(`${API_URL}/blogs`)
       if (!response.ok) throw new Error('Failed to fetch blog posts')
       const data = await response.json()
-      setBlogPosts(data)
+      // Map backend 'published' boolean to frontend 'status' string
+      const mappedData = data.map((post: any) => ({
+        ...post,
+        status: post.published ? 'published' : 'draft'
+      }))
+      setBlogPosts(mappedData)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error fetching blog posts'
       setError(message)
@@ -263,10 +268,15 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const addBlogPost = async (post: Omit<BlogPost, 'id'>) => {
     try {
       setError(null)
+      // Map frontend 'status' string to backend 'published' boolean
+      const apiPost = {
+        ...post,
+        published: post.status === 'published'
+      }
       const response = await fetch(`${API_URL}/blogs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(post),
+        body: JSON.stringify(apiPost),
       })
       if (!response.ok) throw new Error('Failed to add blog post')
       await fetchBlogPosts()
@@ -280,10 +290,15 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const updateBlogPost = async (id: string, post: Omit<BlogPost, 'id'>) => {
     try {
       setError(null)
+      // Map frontend 'status' string to backend 'published' boolean
+      const apiPost = {
+        ...post,
+        published: post.status === 'published'
+      }
       const response = await fetch(`${API_URL}/blogs/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(post),
+        body: JSON.stringify(apiPost),
       })
       if (!response.ok) throw new Error('Failed to update blog post')
       await fetchBlogPosts()
