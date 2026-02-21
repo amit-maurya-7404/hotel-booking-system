@@ -60,6 +60,7 @@ export function DateRangePicker({
                         selected={date}
                         onSelect={setDate}
                         numberOfMonths={2}
+                        disabled={{ before: new Date() }}
                     />
                 </PopoverContent>
             </Popover>

@@ -40,6 +40,13 @@ export interface BlogPost {
   status: 'draft' | 'published'
 }
 
+export interface FeaturePost {
+  id: string
+  image: string
+  instagramUrl: string
+  active?: boolean
+}
+
 export interface Offer {
   id: string
   title: string
@@ -48,6 +55,9 @@ export interface Offer {
   validFrom: string
   validTo: string
   code: string
+  offerType: 'all' | 'room_specific' | 'duration'
+  applicableRooms: string[]
+  minDays: number
   active?: boolean
 }
 
@@ -56,6 +66,7 @@ interface AdminContextType {
   bookings: Booking[]
   blogPosts: BlogPost[]
   offers: Offer[]
+  featurePosts: FeaturePost[]
   loading: boolean
   error: string | null
 
@@ -82,6 +93,12 @@ interface AdminContextType {
   addOffer: (offer: Omit<Offer, 'id'>) => Promise<void>
   updateOffer: (id: string, offer: Omit<Offer, 'id'>) => Promise<void>
   deleteOffer: (id: string) => Promise<void>
+
+  // Feature Post operations
+  fetchFeaturePosts: () => Promise<void>
+  addFeaturePost: (post: Omit<FeaturePost, 'id'>) => Promise<void>
+  updateFeaturePost: (id: string, post: Omit<FeaturePost, 'id'>) => Promise<void>
+  deleteFeaturePost: (id: string) => Promise<void>
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
@@ -91,6 +108,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
   const [offers, setOffers] = useState<Offer[]>([])
+  const [featurePosts, setFeaturePosts] = useState<FeaturePost[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -105,6 +123,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       fetchBookings(),
       fetchBlogPosts(),
       fetchOffers(),
+      fetchFeaturePosts(),
     ])
   }
 
@@ -391,6 +410,73 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // FEATURE POST OPERATIONS
+  const fetchFeaturePosts = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch(`${API_URL}/feature-posts`)
+      if (!response.ok) throw new Error('Failed to fetch feature posts')
+      const data = await response.json()
+      setFeaturePosts(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error fetching feature posts'
+      setError(message)
+      console.error(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const addFeaturePost = async (post: Omit<FeaturePost, 'id'>) => {
+    try {
+      setError(null)
+      const response = await fetch(`${API_URL}/feature-posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(post),
+      })
+      if (!response.ok) throw new Error('Failed to add feature post')
+      await fetchFeaturePosts()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error adding feature post'
+      setError(message)
+      throw err
+    }
+  }
+
+  const updateFeaturePost = async (id: string, post: Omit<FeaturePost, 'id'>) => {
+    try {
+      setError(null)
+      const response = await fetch(`${API_URL}/feature-posts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(post),
+      })
+      if (!response.ok) throw new Error('Failed to update feature post')
+      await fetchFeaturePosts()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error updating feature post'
+      setError(message)
+      throw err
+    }
+  }
+
+  const deleteFeaturePost = async (id: string) => {
+    try {
+      setError(null)
+      const response = await fetch(`${API_URL}/feature-posts/${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) throw new Error('Failed to delete feature post')
+      await fetchFeaturePosts()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error deleting feature post'
+      setError(message)
+      throw err
+    }
+  }
+
   return (
     <AdminContext.Provider
       value={{
@@ -398,6 +484,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         bookings,
         blogPosts,
         offers,
+        featurePosts,
         loading,
         error,
         fetchRooms,
@@ -416,6 +503,10 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         addOffer,
         updateOffer,
         deleteOffer,
+        fetchFeaturePosts,
+        addFeaturePost,
+        updateFeaturePost,
+        deleteFeaturePost,
       }}
     >
       {children}

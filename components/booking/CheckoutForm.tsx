@@ -7,14 +7,24 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Mail, Phone, User, MapPin, Calendar } from 'lucide-react'
 
+interface Offer {
+  id: string
+  title: string
+  discount: number
+  offerType: 'all' | 'room_specific' | 'duration'
+  applicableRooms: string[]
+  minDays: number
+}
+
 interface CheckoutFormProps {
   checkInDate: string
   checkOutDate: string
   selectedRooms: Array<{ id: string; name: string; price: number; quantity: number }>
+  activeOffers?: Offer[]
   onBack: () => void
 }
 
-export default function CheckoutForm({ checkInDate, checkOutDate, selectedRooms, onBack }: CheckoutFormProps) {
+export default function CheckoutForm({ checkInDate, checkOutDate, selectedRooms, activeOffers, onBack }: CheckoutFormProps) {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -38,12 +48,68 @@ export default function CheckoutForm({ checkInDate, checkOutDate, selectedRooms,
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log('[v0] Booking submitted:', formData)
-      setIsSubmitting(false)
+    try {
+      // Calculate Total Price (same logic as in BookingSummary)
+      const nightsCount = Math.max(1, Math.ceil((new Date(checkOutDate).getTime() - new Date(checkInDate).getTime()) / (1000 * 60 * 60 * 24)))
+      const roomsTotal = selectedRooms.reduce((total, room) => total + (room.price * room.quantity * nightsCount), 0)
+
+      let totalDiscount = 0
+      const safeOffers = activeOffers || []
+      selectedRooms.forEach(room => {
+        let roomDiscountPercentage = 0;
+        const durationOffers = safeOffers.filter(o => o.offerType === 'duration' && nightsCount >= o.minDays)
+        const bestDurationOffer = durationOffers.sort((a, b) => b.discount - a.discount)[0]
+        const roomOffers = safeOffers.filter(o => o.offerType === 'room_specific' && o.applicableRooms.includes(room.id))
+        const bestRoomOffer = roomOffers.sort((a, b) => b.discount - a.discount)[0]
+        const allOffers = safeOffers.filter(o => o.offerType === 'all')
+        const bestAllOffer = allOffers.sort((a, b) => b.discount - a.discount)[0]
+
+        if (bestDurationOffer && bestDurationOffer.discount > roomDiscountPercentage) roomDiscountPercentage = bestDurationOffer.discount
+        if (bestRoomOffer && bestRoomOffer.discount > roomDiscountPercentage) roomDiscountPercentage = bestRoomOffer.discount
+        if (bestAllOffer && bestAllOffer.discount > roomDiscountPercentage) roomDiscountPercentage = bestAllOffer.discount
+
+        if (roomDiscountPercentage > 0) {
+          totalDiscount += Math.round((room.price * room.quantity * nightsCount) * (roomDiscountPercentage / 100))
+        }
+      })
+
+      const discountedTotal = roomsTotal - totalDiscount
+      const taxAmount = Math.round(discountedTotal * 0.12)
+      const finalPrice = discountedTotal + taxAmount
+
+      // Compile Booking Data
+      const roomIds = selectedRooms.map(r => r.name).join(', ')
+
+      const payload = {
+        guestName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        roomId: roomIds,
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
+        price: finalPrice,
+        status: 'pending' // Added default status
+      }
+
+      console.log('[v0] Submitting booking payload:', payload)
+
+      const response = await fetch('http://localhost:5000/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit booking')
+      }
+
       setBookingComplete(true)
-    }, 1500)
+    } catch (error) {
+      console.error('Booking submission error:', error)
+      alert('An error occurred while submitting your booking. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (bookingComplete) {
@@ -72,7 +138,7 @@ export default function CheckoutForm({ checkInDate, checkOutDate, selectedRooms,
     <div className="space-y-6">
       <div>
         <h3 className="text-2xl font-bold text-foreground mb-6">Guest Information</h3>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Personal Information */}
           <div className="space-y-4">
@@ -132,7 +198,7 @@ export default function CheckoutForm({ checkInDate, checkOutDate, selectedRooms,
               <MapPin className="w-4 h-4" />
               Address Information
             </h4>
-            
+
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Street Address</label>
               <input
@@ -220,7 +286,7 @@ export default function CheckoutForm({ checkInDate, checkOutDate, selectedRooms,
             <Button variant="outline" onClick={onBack} className="flex-1 bg-transparent">
               Back
             </Button>
-            <Button 
+            <Button
               type="submit"
               disabled={isSubmitting}
               className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"

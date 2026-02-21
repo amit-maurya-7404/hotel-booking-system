@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
@@ -21,7 +21,7 @@ export default function BookingsManagement() {
   const [filter, setFilter] = useState<Booking['status'] | 'all'>('all')
 
   useEffect(() => {
-    fetchBookings().catch(() => {})
+    fetchBookings().catch(() => { })
   }, [])
 
   const filteredBookings = filter === 'all' ? bookings : bookings.filter(b => b.status === filter)
@@ -44,8 +44,8 @@ export default function BookingsManagement() {
         <p className="text-foreground/70 mt-2">Track and manage guest bookings</p>
       </div>
 
-      <div className="flex gap-2 mb-6">
-        {(['all', 'pending', 'confirmed', 'checked-in'] as const).map((status) => (
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {(['all', 'pending', 'confirmed', 'checked-in', 'completed', 'cancelled'] as const).map((status) => (
           <Button
             key={status}
             variant={filter === status ? 'default' : 'outline'}

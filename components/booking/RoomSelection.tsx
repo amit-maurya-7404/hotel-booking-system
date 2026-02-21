@@ -16,9 +16,19 @@ interface Room {
   images?: string[]
 }
 
+interface Offer {
+  id: string
+  title: string
+  discount: number
+  offerType: 'all' | 'room_specific' | 'duration'
+  applicableRooms: string[]
+  minDays: number
+}
+
 interface RoomSelectionProps {
   rooms: Room[]
   quantities: Record<string, number>
+  activeOffers?: Offer[]
   onQuantityChange: (roomId: string, quantity: number) => void
 }
 
@@ -34,7 +44,7 @@ const AMENITY_ICONS: Record<string, any> = {
   tv: Tv,
 }
 
-export default function RoomSelection({ rooms, quantities, onQuantityChange }: RoomSelectionProps) {
+export default function RoomSelection({ rooms, quantities, activeOffers = [], onQuantityChange }: RoomSelectionProps) {
   if (rooms.length === 0) {
     return (
       <div className="text-center p-12 bg-muted/50 rounded-lg">
@@ -81,6 +91,17 @@ export default function RoomSelection({ rooms, quantities, onQuantityChange }: R
                   <User className="w-4 h-4" />
                   <span>x{room.capacity}</span>
                 </div>
+
+                {/* Offer Badges */}
+                {activeOffers.some(o => o.offerType === 'all' || (o.offerType === 'room_specific' && o.applicableRooms.includes(room.id))) && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {activeOffers.filter(o => o.offerType === 'all' || (o.offerType === 'room_specific' && o.applicableRooms.includes(room.id))).map((offer, idx) => (
+                      <span key={idx} className="inline-flex items-center bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">
+                        {offer.title} ({offer.discount}% OFF)
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <p className="text-sm text-muted-foreground mb-6 line-clamp-2">
                   {room.description || 'A comfortable room for your stay.'}

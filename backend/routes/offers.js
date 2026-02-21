@@ -28,10 +28,10 @@ router.get('/:id', async (req, res) => {
 
 // CREATE new offer
 router.post('/', async (req, res) => {
-  const { title, description, discount, validFrom, validTo, code } = req.body;
+  const { title, description, discount, validFrom, validTo, code, offerType, applicableRooms, minDays } = req.body;
 
   // Validation
-  if (!title || !description || !discount || !validFrom || !validTo || !code) {
+  if (!title || !description || !discount || !validFrom || !validTo || !code || !offerType) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -43,6 +43,9 @@ router.post('/', async (req, res) => {
     validFrom,
     validTo,
     code,
+    offerType,
+    applicableRooms: applicableRooms || [],
+    minDays: minDays || 0,
     active: true,
   });
 
@@ -68,6 +71,9 @@ router.put('/:id', async (req, res) => {
     if (req.body.validFrom) offer.validFrom = req.body.validFrom;
     if (req.body.validTo) offer.validTo = req.body.validTo;
     if (req.body.code) offer.code = req.body.code;
+    if (req.body.offerType) offer.offerType = req.body.offerType;
+    if (req.body.applicableRooms !== undefined) offer.applicableRooms = req.body.applicableRooms;
+    if (req.body.minDays !== undefined) offer.minDays = req.body.minDays;
     if (req.body.active !== undefined) offer.active = req.body.active;
 
     const updatedOffer = await offer.save();

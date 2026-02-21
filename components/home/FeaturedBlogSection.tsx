@@ -10,7 +10,7 @@ export default function FeaturedBlogSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Main Featured Post */}
-          <Card className="overflow-hidden shadow-md border-border">
+          <Card className="overflow-hidden shadow-md border-border py-0">
             <div className="aspect-video bg-gradient-to-br from-orange-100 to-yellow-50"></div>
             <div className="p-8">
               <h3 className="text-2xl font-bold text-foreground mb-4">
@@ -25,7 +25,7 @@ export default function FeaturedBlogSection() {
           {/* Blog Grid */}
           <div className="grid grid-cols-2 gap-5">
             {['Guided Hiking & Overnight Camping', 'Guided Hiking & Overnight Camping', 'Guided Hiking & Overnight Camping', 'Guided Hiking & Overnight Camping'].map((title, idx) => (
-              <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow border-border">
+              <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow border-border py-0">
                 <div className="aspect-square bg-gradient-to-br from-orange-100 to-yellow-50"></div>
                 <div className="p-4">
                   <p className="text-xs font-semibold text-foreground line-clamp-2">{title}</p>

@@ -5,11 +5,11 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import RoomsManagement from '@/components/admin/RoomsManagement'
 import BookingsManagement from '@/components/admin/BookingsManagement'
-import PricingManagement from '@/components/admin/PricingManagement'
 import BlogPostsManagement from '@/components/admin/BlogPostsManagement'
 import OffersManagement from '@/components/admin/OffersManagement'
+import FeaturePostManagement from '@/components/admin/FeaturePostManagement'
 
-type AdminTab = 'overview' | 'rooms' | 'bookings' | 'pricing' | 'offers' | 'blog'
+type AdminTab = 'overview' | 'rooms' | 'bookings' | 'feature-posts' | 'offers' | 'blog'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview')
@@ -17,10 +17,10 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background flex">
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      
+
       <div className="flex-1 flex flex-col">
         <AdminHeader />
-        
+
         <main className="flex-1 overflow-auto p-8">
           {activeTab === 'overview' && (
             <OverviewTab />
@@ -31,8 +31,8 @@ export default function AdminDashboard() {
           {activeTab === 'bookings' && (
             <BookingsManagement />
           )}
-          {activeTab === 'pricing' && (
-            <PricingManagement />
+          {activeTab === 'feature-posts' && (
+            <FeaturePostManagement />
           )}
           {activeTab === 'offers' && (
             <OffersManagement />

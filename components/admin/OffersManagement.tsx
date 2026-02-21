@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
@@ -8,67 +8,54 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Edit, Trash2, Plus, X } from 'lucide-react'
 import { Loader } from 'lucide-react'
-import { useAdmin } from '@/context/AdminContext'
-
-interface Offer {
-  id: string
-  title: string
-  description: string
-  discount: number
-  validFrom: string
-  validTo: string
-  code: string
-}
-
-const INITIAL_OFFERS: Offer[] = [
-  {
-    id: '1',
-    title: 'Early Bird Special',
-    description: 'Book 7 days in advance for 15% discount',
-    discount: 15,
-    validFrom: '2024-01-01',
-    validTo: '2024-03-31',
-    code: 'EARLYBIRD15',
-  },
-  {
-    id: '2',
-    title: 'Weekly Stay Discount',
-    description: 'Stay for 7+ nights and get 20% off',
-    discount: 20,
-    validFrom: '2024-01-01',
-    validTo: '2024-12-31',
-    code: 'WEEKLY20',
-  },
-]
+import { useAdmin, Offer, Room } from '@/context/AdminContext'
 
 export default function OffersManagement() {
-  const { offers, loading, error, fetchOffers, addOffer, updateOffer, deleteOffer } = useAdmin()
+  const { offers, rooms, loading, error, fetchOffers, addOffer, updateOffer, deleteOffer, fetchRooms } = useAdmin()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Offer, 'id' | 'active'>>({
     title: '',
     description: '',
     discount: 0,
     validFrom: '',
     validTo: '',
     code: '',
+    offerType: 'all',
+    applicableRooms: [],
+    minDays: 30, // Default 30 for duration
   })
 
+  useEffect(() => {
+    fetchOffers().catch(() => { })
+    fetchRooms().catch(() => { })
+  }, [])
+
   const handleReset = () => {
-    setFormData({ title: '', description: '', discount: 0, validFrom: '', validTo: '', code: '' })
+    setFormData({
+      title: '', description: '', discount: 0,
+      validFrom: '', validTo: '', code: '',
+      offerType: 'all', applicableRooms: [], minDays: 30
+    })
     setEditingId(null)
     setShowForm(false)
   }
 
   const handleEdit = (offer: Offer) => {
-    setFormData(offer)
+    setFormData({
+      title: offer.title,
+      description: offer.description,
+      discount: offer.discount,
+      validFrom: offer.validFrom,
+      validTo: offer.validTo,
+      code: offer.code,
+      offerType: offer.offerType || 'all',
+      applicableRooms: offer.applicableRooms || [],
+      minDays: offer.minDays || 0,
+    })
     setEditingId(offer.id)
     setShowForm(true)
   }
-
-  useEffect(() => {
-    fetchOffers().catch(() => {})
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,6 +72,16 @@ export default function OffersManagement() {
     }
   }
 
+  const handleRoomToggle = (roomId: string) => {
+    setFormData(prev => {
+      const isSelected = prev.applicableRooms.includes(roomId);
+      const newRooms = isSelected
+        ? prev.applicableRooms.filter(id => id !== roomId)
+        : [...prev.applicableRooms, roomId];
+      return { ...prev, applicableRooms: newRooms };
+    })
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -92,7 +89,7 @@ export default function OffersManagement() {
           <h1 className="text-3xl font-bold text-foreground">Offers & Promotions</h1>
           <p className="text-foreground/70 mt-2">Create and manage special offers and discount codes</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setShowForm(!showForm)}
           className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2"
         >
@@ -111,7 +108,7 @@ export default function OffersManagement() {
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Offer Title *</Label>
@@ -178,8 +175,85 @@ export default function OffersManagement() {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
+            <div className="pt-4 border-t border-border">
+              <Label className="text-lg font-semibold mb-2 block">Offer Scope & Type *</Label>
+              <div className="flex gap-4 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="offerType"
+                    checked={formData.offerType === 'all'}
+                    onChange={() => setFormData({ ...formData, offerType: 'all', applicableRooms: [] })}
+                  />
+                  <span>All Rooms</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="offerType"
+                    checked={formData.offerType === 'duration'}
+                    onChange={() => setFormData({ ...formData, offerType: 'duration', minDays: 30, applicableRooms: [] })}
+                  />
+                  <span>Duration Based (e.g. 30+ days)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="offerType"
+                    checked={formData.offerType === 'room_specific'}
+                    onChange={() => setFormData({ ...formData, offerType: 'room_specific' })}
+                  />
+                  <span>Specific Rooms</span>
+                </label>
+              </div>
+
+              {formData.offerType === 'duration' && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2">
+                  <Label>Minimum Required Days *</Label>
+                  <Input
+                    type="number"
+                    value={formData.minDays || 30}
+                    onChange={(e) => setFormData({ ...formData, minDays: parseInt(e.target.value) })}
+                    placeholder="e.g. 30"
+                    min="1"
+                    required={formData.offerType === 'duration'}
+                  />
+                  <p className="text-xs text-foreground/60">This offer will only apply if the booking length is greater than or equal to this number.</p>
+                </div>
+              )}
+
+              {formData.offerType === 'room_specific' && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                  <Label className="mb-2 block">Select Applicable Rooms *</Label>
+                  {rooms.length === 0 ? (
+                    <p className="text-sm text-yellow-600">No rooms available to select. Please add rooms first.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {rooms.map(room => (
+                        <label key={room.id} className="flex items-center gap-2 text-sm p-2 border border-border rounded bg-background cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.applicableRooms.includes(room.id)}
+                            onChange={() => handleRoomToggle(room.id)}
+                          />
+                          <span className="truncate" title={room.name}>{room.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {formData.applicableRooms.length === 0 && (
+                    <p className="text-xs text-red-500 mt-2">Please select at least one room.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                type="submit"
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                disabled={formData.offerType === 'room_specific' && formData.applicableRooms.length === 0}
+              >
                 {editingId ? 'Update Offer' : 'Create Offer'}
               </Button>
               <Button type="button" variant="outline" onClick={handleReset} className="flex-1">
@@ -203,22 +277,34 @@ export default function OffersManagement() {
       <div className="grid gap-4">
         {offers.map((offer) => {
           const isActive = new Date(offer.validFrom) <= new Date() && new Date() <= new Date(offer.validTo)
-          
+
           return (
             <Card key={offer.id} className={`p-6 border ${isActive ? 'border-green-500' : 'border-border'} hover:shadow-md transition`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-bold text-foreground">{offer.title}</h3>
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                      isActive 
-                        ? 'bg-green-100 text-green-800' 
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${isActive
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-800'
-                    }`}>
+                      }`}>
                       {isActive ? '✓ Active' : 'Inactive'}
+                    </span>
+                    <span className="text-xs px-3 py-1 rounded-full font-semibold bg-blue-100 text-blue-800 capitalize">
+                      {offer.offerType === 'room_specific' ? 'Room Specific' : offer.offerType} Type
                     </span>
                   </div>
                   <p className="text-foreground/70 mb-3">{offer.description}</p>
+
+                  {offer.offerType === 'duration' && (
+                    <p className="text-sm font-medium text-primary mb-3">Requires minimum {offer.minDays} days stay</p>
+                  )}
+                  {offer.offerType === 'room_specific' && offer.applicableRooms.length > 0 && (
+                    <p className="text-sm text-foreground/70 mb-3">
+                      Applies to {offer.applicableRooms.length} specific room(s)
+                    </p>
+                  )}
+
                   <div className="flex gap-6 text-sm text-foreground/60 flex-wrap">
                     <div>
                       <span className="font-semibold text-foreground text-lg">{offer.discount}%</span>

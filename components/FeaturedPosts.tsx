@@ -1,32 +1,38 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
 
-const FEATURED_POSTS = [
-  {
-    id: 1,
-    author: 'Anshul Sharma',
-    title: 'Caught Unquote',
-    description: 'Any random quote/dialogue by any visitor, just not copied',
-    image: '🎵',
-  },
-  {
-    id: 2,
-    author: 'Anshul Sharma',
-    title: 'Mountain Adventures',
-    description: 'Unforgettable moments from our guests exploring the Himalayas',
-    image: '📸',
-  },
-  {
-    id: 3,
-    author: 'Anshul Sharma',
-    title: 'Local Stories',
-    description: 'Tales from our community and the people who make this place special',
-    image: '📖',
-  },
-]
+interface FeaturePost {
+  id: string
+  image: string
+  instagramUrl: string
+  active: boolean
+}
+
+// Removed FALLBACK_POSTS
 
 export default function FeaturedPosts() {
+  const [posts, setPosts] = useState<FeaturePost[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/feature-posts')
+        if (response.ok) {
+          const data = await response.json()
+          setPosts(data.filter((post: FeaturePost) => post.active))
+        }
+      } catch (err) {
+        console.error('Failed to fetch feature posts', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPosts()
+  }, [])
+
   return (
     <section className="py-20 bg-muted">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,18 +42,33 @@ export default function FeaturedPosts() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          {FEATURED_POSTS.map((post) => (
-            <Card key={post.id} className="overflow-hidden hover:shadow-lg transition cursor-pointer">
-              <div className="h-48 bg-gradient-to-br from-secondary/30 to-primary/20 flex items-center justify-center text-6xl">
-                {post.image}
-              </div>
-              <div className="p-6">
-                <p className="text-sm text-primary font-semibold mb-2">@{post.author.toLowerCase().replace(' ', '')}</p>
-                <h3 className="text-xl font-bold text-foreground mb-3">{post.title}</h3>
-                <p className="text-foreground/80">{post.description}</p>
-              </div>
-            </Card>
-          ))}
+          {!loading && posts.length > 0 ? (
+            posts.map((post) => (
+              <a href={post.instagramUrl} target="_blank" rel="noopener noreferrer" key={post.id} className="block transition cursor-pointer">
+                <Card className="overflow-hidden hover:shadow-lg h-full border-border">
+                  <div className="h-64 relative bg-secondary/20">
+                    <img
+                      src={post.image}
+                      alt="Featured post"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&q=80&w=800'
+                      }}
+                    />
+                  </div>
+                  <div className="p-4 bg-card text-center">
+                    <p className="text-sm text-primary font-semibold truncate hover:underline">
+                      See Original on Instagram
+                    </p>
+                  </div>
+                </Card>
+              </a>
+            ))
+          ) : !loading && posts.length === 0 ? (
+            <div className="col-span-full text-center text-foreground/60 p-12">
+              No stories available right now. Share your story with us!
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

@@ -29,6 +29,20 @@ interface Room {
   images?: string[]
 }
 
+interface Offer {
+  id: string
+  title: string
+  description: string
+  discount: number
+  validFrom: string
+  validTo: string
+  code: string
+  offerType: 'all' | 'room_specific' | 'duration'
+  applicableRooms: string[]
+  minDays: number
+  active?: boolean
+}
+
 const API_URL = 'http://localhost:5000/api'
 
 export default function BookingFlow({ onClose, checkInDate, checkOutDate }: BookingFlowProps) {
@@ -36,6 +50,7 @@ export default function BookingFlow({ onClose, checkInDate, checkOutDate }: Book
 
   // State lifted from RoomSelection
   const [rooms, setRooms] = useState<Room[]>([])
+  const [offers, setOffers] = useState<Offer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
@@ -46,25 +61,41 @@ export default function BookingFlow({ onClose, checkInDate, checkOutDate }: Book
     to: new Date(checkOutDate),
   })
 
-  useEffect(() => {
-    fetchRooms()
-  }, [])
-
-  const fetchRooms = async () => {
+  const fetchRoomsAndOffers = async () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(`${API_URL}/rooms`)
-      if (!response.ok) throw new Error('Failed to fetch rooms')
-      const data = await response.json()
-      setRooms(data.filter((room: Room) => room.available))
+      const [roomsRes, offersRes] = await Promise.all([
+        fetch(`${API_URL}/rooms`),
+        fetch(`${API_URL}/offers`)
+      ])
+
+      if (!roomsRes.ok) throw new Error('Failed to fetch rooms')
+      if (!offersRes.ok) throw new Error('Failed to fetch offers')
+
+      const roomsData = await roomsRes.json()
+      const offersData = await offersRes.json()
+
+      setRooms(roomsData.filter((room: Room) => room.available))
+
+      // Only keep active offers
+      const now = new Date();
+      setOffers(offersData.filter((offer: Offer) => {
+        return offer.active !== false &&
+          new Date(offer.validFrom) <= now &&
+          new Date(offer.validTo) >= now
+      }))
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error fetching rooms'
+      const message = err instanceof Error ? err.message : 'Error fetching data'
       setError(message)
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchRoomsAndOffers()
+  }, [])
 
   const updateQuantity = (roomId: string, quantity: number) => {
     if (quantity < 0) return
@@ -128,12 +159,13 @@ export default function BookingFlow({ onClose, checkInDate, checkOutDate }: Book
               ) : error ? (
                 <div className="text-center p-12 text-red-500">
                   {error}
-                  <Button onClick={fetchRooms} variant="outline" className="ml-4">Retry</Button>
+                  <Button onClick={fetchRoomsAndOffers} variant="outline" className="ml-4">Retry</Button>
                 </div>
               ) : (
                 <RoomSelection
                   rooms={rooms}
                   quantities={quantities}
+                  activeOffers={offers}
                   onQuantityChange={updateQuantity}
                 />
               )}
@@ -146,6 +178,7 @@ export default function BookingFlow({ onClose, checkInDate, checkOutDate }: Book
                   checkInDate={date?.from?.toISOString() || checkInDate}
                   checkOutDate={date?.to?.toISOString() || checkOutDate}
                   selectedRooms={selectedRoomsList}
+                  activeOffers={offers}
                   onContinue={handleContinueToCheckout}
                   showButton={true}
                 />
@@ -158,6 +191,7 @@ export default function BookingFlow({ onClose, checkInDate, checkOutDate }: Book
                 checkInDate={date?.from?.toISOString() || checkInDate}
                 checkOutDate={date?.to?.toISOString() || checkOutDate}
                 selectedRooms={selectedRoomsList}
+                activeOffers={offers}
                 onContinue={handleContinueToCheckout}
                 showButton={true}
               />
@@ -172,6 +206,7 @@ export default function BookingFlow({ onClose, checkInDate, checkOutDate }: Book
                 checkInDate={date?.from?.toISOString() || checkInDate}
                 checkOutDate={date?.to?.toISOString() || checkOutDate}
                 selectedRooms={selectedRoomsList}
+                activeOffers={offers}
                 onBack={handleBackToRooms}
               />
             </div>
@@ -181,6 +216,7 @@ export default function BookingFlow({ onClose, checkInDate, checkOutDate }: Book
                   checkInDate={date?.from?.toISOString() || checkInDate}
                   checkOutDate={date?.to?.toISOString() || checkOutDate}
                   selectedRooms={selectedRoomsList}
+                  activeOffers={offers}
                 />
               </div>
             </div>

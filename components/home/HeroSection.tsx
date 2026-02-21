@@ -2,20 +2,25 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { DatePicker } from '@/components/booking/DatePicker'
+import { format } from 'date-fns'
 
 interface HeroSectionProps {
   onExplore: (checkInDate: string, checkOutDate: string) => void
 }
 
 export default function HeroSection({ onExplore }: HeroSectionProps) {
-  const [checkInDate, setCheckInDate] = useState('2024-03-14')
-  const [checkOutDate, setCheckOutDate] = useState('2024-03-15')
+  const [checkInDate, setCheckInDate] = useState<Date | undefined>(undefined)
+  const [checkOutDate, setCheckOutDate] = useState<Date | undefined>(undefined)
+  const [accommodationType, setAccommodationType] = useState<string>('all')
 
   const handleExplore = () => {
     if (checkInDate && checkOutDate) {
-      onExplore(checkInDate, checkOutDate)
+      const checkInStr = format(checkInDate, 'yyyy-MM-dd')
+      const checkOutStr = format(checkOutDate, 'yyyy-MM-dd')
+      onExplore(checkInStr, checkOutStr)
     }
   }
 
@@ -37,33 +42,48 @@ export default function HeroSection({ onExplore }: HeroSectionProps) {
           <h1 className="text-4xl sm:text-6xl font-bold text-white mb-4 text-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">You Deserve This Break</h1>
           <Card className="w-full p-8 shadow-md border-border">
 
-            <div className="flex flex-col sm:flex-row gap-5 w-full">
-              <div className="grow">
+            <div className="flex flex-col md:flex-row gap-5 w-full">
+
+              <div className="flex-1 w-full md:w-[40%]">
                 <label className="text-xs font-bold text-foreground block mb-2 uppercase">Accommodation Type</label>
-                <Input placeholder="Select Accommodation Type" />
+                <Select value={accommodationType} onValueChange={setAccommodationType}>
+                  <SelectTrigger className="w-full bg-background h-10 cursor-pointer">
+                    <SelectValue placeholder="Accommodation Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="dormitory">Dormitory Room</SelectItem>
+                    <SelectItem value="private">Private Room</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="grow">
-                <div className="flex items-center justify-between text-xs font-bold text-foreground uppercase">
+              <div className="flex-1 w-full md:w-[60%]">
+                <div className="flex items-center justify-between text-xs font-bold text-foreground mb-2 uppercase">
                   <span>Check In</span>
                   <span>Check Out</span>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <Input
-                    type="date"
-                    className="px-3 py-2 text-xs"
-                    value={checkInDate}
-                    onChange={(e) => setCheckInDate(e.target.value)}
-                  />
-                  <span className="text-lg text-muted-foreground">→</span>
-                  <Input
-                    type="date"
-                    className="px-3 py-2 text-xs"
-                    value={checkOutDate}
-                    onChange={(e) => setCheckOutDate(e.target.value)}
-                    min={checkInDate}
-                  />
+                <div className="flex items-center gap-2 w-full text-sm">
+                  <div className="flex-1 min-w-0">
+                    <DatePicker
+                      date={checkInDate}
+                      setDate={setCheckInDate}
+                      minDate={new Date()}
+                      placeholder="Check In"
+                      classname="w-full cursor-pointer"
+                    />
+                  </div>
+                  <span className="text-lg text-muted-foreground shrink-0">→</span>
+                  <div className="flex-1 min-w-0">
+                    <DatePicker
+                      date={checkOutDate}
+                      setDate={setCheckOutDate}
+                      minDate={checkInDate || new Date()}
+                      placeholder="Check Out"
+                      classname="w-full cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -71,7 +91,7 @@ export default function HeroSection({ onExplore }: HeroSectionProps) {
             <div>
               <Button
                 onClick={handleExplore}
-                className="w-full bg-primary hover:bg-orange-600 text-white py-2 font-bold text-sm uppercase"
+                className="w-full bg-primary hover:opacity-90 text-white py-2 font-bold text-sm uppercase cursor-pointer"
               >
                 Explore
               </Button>
